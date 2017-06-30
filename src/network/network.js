@@ -27,6 +27,7 @@ class VConsoleNetworkTab extends VConsolePlugin {
     this._send = undefined;
 
     this.mockAjax();
+    this.mockFetch();
   }
 
   onRenderTab(callback) {
@@ -358,7 +359,43 @@ class VConsoleNetworkTab extends VConsolePlugin {
   };
 
   /**
-   * generate an unique id string (32)
+   * mock fetch request
+   * @private
+   */
+  mockFetch() {
+    const that = this;
+    let _fetch = window.fetch;
+    if (!_fetch) return ;
+    window.fetch = function(url,options ={}) {
+      console.info('url', url, 'options', options)
+      const item = {};
+      item.startTime = new Date();
+      item.readyState = 0;
+      return _fetch(url, options)
+      .then(q => {
+        item.readyState = 4;
+        item.endTime = new Date();
+        item.headers = q.headers;
+        item.status = q.status;
+        item.url = q.url;
+        item.method = options.method || 'GET';
+        item.body = q.body;
+        return q.json();
+      })
+      .then(q => {
+        item.responseType = 'json'
+        item.response = q;
+        // TODO: 上报到指定的服务器。比如我的电脑，这样我就可以看到了 哈哈哈哈
+        that.updateRequest(that.getUniqueID(), item);
+        return q;
+      })
+    }
+
+
+  };
+
+  /**
+   * generate an unique id string (32)`
    * @private
    * @return string
    */
